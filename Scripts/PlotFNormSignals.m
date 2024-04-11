@@ -4,11 +4,21 @@ function PlotFNormSignals(Data,Parameters)
         subplot(1,Parameters.n_files,i)
         imagesc(Data(i).Fnorm',clims);
         colormap jet
-        xlabel('Time (samples)')
+        xlabel('Time (min)')
+        
+        t=0:Parameters.SamplingRate*60:Data(i).T;
+        for m=1:length(t)
+            Labels{m}=num2str(m-1);
+        end
+        xticks(t);
+        xticklabels(Labels);
+
         xlim([0,Data(i).T])
 
         ylabel('Neuron #')
         ylim([0,Parameters.N])
+
+        title([Parameters.Multifile{i}])
     end
     colorbar();
     if ~isempty(Parameters.CaPlot.Position)
