@@ -1,6 +1,6 @@
 function [Data,Parameters]=AnalyzeCalcium(varargin)
 % Written and maintained by Connor Beck
-% Updated June 2023
+% Updated April 2024
 
 %   AnalyzeCalcium takes raw ImageJ mean intensity files of calcium and
 %   computes DeltaF/F (the research standard for calcium signals) and calcium 
@@ -107,18 +107,28 @@ function [Data,Parameters]=AnalyzeCalcium(varargin)
     Parameters.CaPlot.PlotCa=false;
     Parameters.CaPlot.Position=[];
     Parameters.CaPlot.SaveCaPlotFile={};
-
+    Parameters.CaPlot.SaveCaPlot.Path=[];
+    
     Parameters.PlotEvents=false;
 
     %Base parameter settings
     Parameters.Multifile=NaN;
+    Parameters.ImportType='Mean';
     Parameters.Smoothing=false;
+    Parameters.ForceCalculation=false;
+    Parameters.TimeJumps=false;
     Parameters.Reduction=NaN;
-    
-    Parameters.standardDev=1.25;
-    Parameters.noiseThreshold=0.1;
+    Parameters.Outputs=false;
+    Parameters.InfluxOnly=false;
+    Parameters.InfluxTimepoint=NaN;
+    Parameters.PhotobleachCorrection.state=false;
+    Parameters.SelectSmoothing=false;
+
+    Parameters.standardDev=3;
+    Parameters.noiseThreshold=0.005;
     Parameters.SamplingRate=4;
     Parameters.ModulationTime=NaN;
+    Parameters.removeinactive=true;
     
 
     switch nargin
@@ -140,20 +150,39 @@ function [Data,Parameters]=AnalyzeCalcium(varargin)
                         Parameters.Reduction=varargin{i+1};
                     elseif strcmp(varargin{i},'Standard Deviation')
                         Parameters.standardDev=varargin{i+1};
+                    elseif strcmp(varargin{i},'Photobleach Correction')
+                        Parameters.PhotobleachCorrection.state=varargin{i+1};
                     elseif strcmp(varargin{i},'Noise Threshold')
                         Parameters.noiseThreshold=varargin{i+1};
+                    elseif strcmp(varargin{i},'Force Calculation')
+                        Parameters.ForceCalculation=varargin{i+1};
                     elseif strcmp(varargin{i},'Sampling Rate')
                         Parameters.SamplingRate=varargin{i+1};
                     elseif strcmp(varargin{i},'Smoothing')
                         Parameters.Smoothing=varargin{i+1};
+                    elseif strcmp(varargin{i},'Select Smoothing')
+                        Parameters.SelectSmoothing=true;
+                        Parameters.SelectSmoothingList=varargin{i+1};
                     elseif strcmp(varargin{i},'ModulationTime')
                         Parameters.ModulationTime=varargin{i+1};
                     elseif strcmp(varargin{i},'Multifile')
                         Parameters.Multifile=varargin{i+1};
+                    elseif strcmp(varargin{i},'Time Jumps')
+                        Parameters.TimeJumps=varargin{i+1};
+                    elseif strcmp(varargin{i},'remove inactive')
+                        Parameters.removeinactive=varargin{i+1};
+                    elseif strcmp(varargin{i},'Outputs')
+                        Parameters.Outputs=varargin{i+1};
                     elseif strcmp(varargin{i},'Plot Calcium')
                         Parameters.CaPlot.PlotCa=varargin{i+1};
                     elseif strcmp(varargin{i},'SetCaPosition')
                         Parameters.CaPlot.Position=varargin{i+1};
+                    elseif strcmp(varargin{i},'Influx Only')
+                        Parameters.InfluxOnly=varargin{i+1};
+                    elseif strcmp(varargin{i},'Influx Timepoint')
+                        Parameters.InfluxTimepoint=varargin{i+1};
+                    elseif strcmp(varargin{i},'Import Type')
+                        Parameters.ImportType=varargin{i+1};
                     elseif strcmp(varargin{i},'SaveCaPlot')
                         if length(varargin{i+1})==2
                             Parameters.CaPlot.SaveCaPlot.Path=varargin{i+1}{1};
@@ -181,34 +210,36 @@ function [Data,Parameters]=AnalyzeCalcium(varargin)
     % Import the data
     [Data,Parameters]=importImageJData(Parameters);
     
-    % If you are looking for a specific N(Neurons) - Set reduction to the
-    % desired value
-    if ~isnan(Parameters.Reduction)
-        Data=reduceNumber(Data,Parameters.Reduction);
-    end
     
     %All signals will be normalized to deltaF/F using the lower envelope
     %method.
-    Data=Normalization(Data,Parameters);
-   
+    [Data,Parameters]=Normalization(Data,Parameters);
+
     %Detection of Influx events
-    Data=EventDetection(Data,Parameters);
-    
+    [Data,Parameters]=EventDetection(Data,Parameters);
+
+
+        % If you are looking for a specific N(Neurons) - Set reduction to the
+    % desired value
+    if ~isnan(Parameters.Reduction)
+        Data=reduceNumber(Data,Parameters);
+    end
     %% Other useful post-analysis functions    
 
-    %     Data=EventOutputs(Data);
     %     Data=EventChanges(Data);
     %     Data=correlateSynch(Data);
-
+    if Parameters.Outputs
+        Data=EventOutputs(Data,Parameters);
+    end
 
     %% Plotting
 
     if Parameters.CaPlot.PlotCa
         figure('Name','Calcium Heatmap')
-        
+
         PlotFNormSignals(Data,Parameters)
     end
-    
+
     if Parameters.PlotEvents
         figure('Name','Calcium Events');
         PlotEvents(Data,Parameters)

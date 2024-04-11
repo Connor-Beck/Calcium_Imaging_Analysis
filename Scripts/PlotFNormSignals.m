@@ -8,7 +8,7 @@ function PlotFNormSignals(Data,Parameters)
         xlim([0,Data(i).T])
 
         ylabel('Neuron #')
-        ylim([0,Data(i).N])
+        ylim([0,Parameters.N])
     end
     colorbar();
     if ~isempty(Parameters.CaPlot.Position)
