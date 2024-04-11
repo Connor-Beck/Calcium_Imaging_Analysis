@@ -2,7 +2,7 @@ clear
 clc
 
 %Path with all the functions in them
-addpath('/Users/connorbeck/Library/CloudStorage/OneDrive-MontanaStateUniversity/Manuscript - iNMF - calcium/Data/Sorted Calcium Data/Scripts');
+addpath('/Scripts');
 %% Single Signal Input
 filename1='Dataset_A.csv';
 
